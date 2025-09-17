@@ -2,17 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use GuzzleHttp\Client;
-use Illuminate\Http\Request;
+use App\Enums\ProfileSourceEnum;
+use App\Exceptions\ProfileFetchException;
+use App\Exceptions\ProfileNotFoundException;
+use App\Http\Requests\ProfileLookupRequest;
+use App\Services\ProfileService;
+use Illuminate\Http\JsonResponse;
 
 class ProfileController extends Controller
 {
     /**
      * Handle the incoming request.
      */
-    public function __invoke(Request $request)
+    public function __invoke(ProfileLookupRequest $request, ProfileService $profileService): JsonResponse
     {
-        if ($request->get('type') == 'minecraft') {
+        $profileSource = ProfileSourceEnum::from($request->validated('type'));
+
+        $profileService->setSource($profileSource->strategy());
+
+        try {
+            $profile = $profileService->fetch($request->toArray());
+        } catch (ProfileNotFoundException $e) {
+            return response()->json(['message' => $e->getMessage()], 404);
+        } catch (ProfileFetchException $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+
+        return response()->json($profile);
+
+        /*if ($request->get('type') == 'minecraft') {
             if ($request->get('username')) {
                 $username = $request->get('username');
                 $userId = false;
@@ -93,6 +111,6 @@ class ProfileController extends Controller
             }
         }
         //We can't handle this - maybe provide feedback?
-        die();
+        die();*/
     }
 }
