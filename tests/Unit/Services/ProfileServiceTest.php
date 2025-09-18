@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Services\ProfileService;
-use App\Services\ProfileSourceInterface;
+use App\Interfaces\ProfileSourceInterface;
 use Exception;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;

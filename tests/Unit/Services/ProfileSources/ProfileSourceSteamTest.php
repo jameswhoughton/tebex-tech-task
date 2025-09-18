@@ -6,6 +6,7 @@ use App\Enums\ProfileSourceEnum;
 use App\Exceptions\ExternalRequestFailedException;
 use App\Services\ProfileSourceStrategies\ProfileSourceSteam;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -60,13 +61,18 @@ class ProfileSourceSteamTest extends TestCase
         ]);
 
         $this->expectException(ExternalRequestFailedException::class);
-        $this->expectExceptionCode(404);
 
         $source = app(ProfileSourceSteam::class);
 
         $source->setPayload(['id' => '99999999999999999']);
 
-        $source->fetch();
+        try {
+            $source->fetch();
+        } catch (ExternalRequestFailedException $e) {
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $e->getStatusCode());
+
+            throw $e;
+        }
     }
 
     public function test_fetch_returns_expected_profile(): void

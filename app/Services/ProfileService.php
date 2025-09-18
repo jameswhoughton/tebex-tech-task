@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Interfaces\ProfileSerivceInterface;
+use App\Interfaces\ProfileSourceInterface;
 use Illuminate\Support\Facades\Cache;
 
-class ProfileService
+class ProfileService implements ProfileSerivceInterface
 {
     private ProfileSourceInterface $source;
 

@@ -5,6 +5,7 @@ namespace Tests\Unit\Services\ProfileSources;
 use App\Enums\ProfileSourceEnum;
 use App\Exceptions\ExternalRequestFailedException;
 use App\Services\ProfileSourceStrategies\ProfileSourceMinecraftUsername;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -52,13 +53,18 @@ class ProfileSourceMinecraftUsernameTest extends TestCase
         ]);
 
         $this->expectException(ExternalRequestFailedException::class);
-        $this->expectExceptionCode(404);
 
         $source = app(ProfileSourceMinecraftUsername::class);
 
         $source->setPayload(['username' => 'John']);
 
-        $source->fetch();
+        try {
+            $source->fetch();
+        } catch (ExternalRequestFailedException $e) {
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $e->getStatusCode());
+
+            throw $e;
+        }
     }
 
     public function test_fetch_returns_expected_profile(): void

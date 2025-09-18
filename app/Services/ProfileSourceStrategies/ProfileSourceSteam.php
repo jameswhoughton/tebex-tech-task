@@ -5,8 +5,9 @@ namespace App\Services\ProfileSourceStrategies;
 use App\Enums\ProfileSourceEnum;
 use App\Exceptions\ExternalRequestFailedException;
 use App\Services\ExternalRequestService;
-use App\Services\ProfileSourceInterface;
+use App\Interfaces\ProfileSourceInterface;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 
@@ -61,7 +62,7 @@ class ProfileSourceSteam implements ProfileSourceInterface
 
         // The external endpoint appears to return a 200 with a body code of 400 if the steam ID cannot be found.
         if (isset($body['error']) && $body['error']['code'] === 400) {
-            throw new ExternalRequestFailedException('Unable to find profile', code: 404);
+            throw new ExternalRequestFailedException(Response::HTTP_NOT_FOUND, 'Unable to find profile');
         }
 
         return [

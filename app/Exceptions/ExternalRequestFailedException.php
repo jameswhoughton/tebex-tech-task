@@ -2,6 +2,6 @@
 
 namespace App\Exceptions;
 
-use Exception;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class ExternalRequestFailedException extends Exception {}
+class ExternalRequestFailedException extends HttpException {}

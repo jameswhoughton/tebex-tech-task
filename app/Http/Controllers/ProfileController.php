@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\ProfileSourceEnum;
 use App\Exceptions\ExternalRequestFailedException;
 use App\Http\Requests\ProfileLookupRequest;
-use App\Services\ProfileService;
+use App\Interfaces\ProfileSerivceInterface;
 use Exception;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +16,7 @@ class ProfileController extends Controller
     /**
      * Handle the incoming request.
      */
-    public function __invoke(ProfileLookupRequest $request, ProfileService $profileService): JsonResponse
+    public function __invoke(ProfileLookupRequest $request, ProfileSerivceInterface $profileService): JsonResponse
     {
         try {
             $profileSource = ProfileSourceEnum::from($request->validated('type'))->strategy($request->all());
@@ -26,7 +26,7 @@ class ProfileController extends Controller
             $profile = $profileService->fetch($request->toArray());
         } catch (ExternalRequestFailedException $e) {
 
-            $code = $e->getCode();
+            $code = $e->getStatusCode();
 
             // Specifically handle not found errors
             if ($code === Response::HTTP_NOT_FOUND) {
@@ -35,12 +35,12 @@ class ProfileController extends Controller
 
             // Any server errors form the external call can be treated as a 502
             if ($code >= 500) {
-                return response()->json(['message' => $e->getMessage()], 502);
+                return response()->json(['message' => $e->getMessage()], Response::HTTP_BAD_GATEWAY);
             }
 
             // Any other client errors can be treated as a 400
             if ($code >= 400) {
-                return response()->json(['message' => $e->getMessage()], 400);
+                return response()->json(['message' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
             }
         } catch (ThrottleRequestsException $e) {
             return response()->json(['message' => 'Too many requests, try again shortly'], Response::HTTP_TOO_MANY_REQUESTS);

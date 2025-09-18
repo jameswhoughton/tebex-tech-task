@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\ExternalRequestFailedException;
 use Exception;
 use Illuminate\Http\Client\Response;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -17,7 +18,13 @@ class ExternalRequestService
                 ->retry(2, 100, throw: false)
                 ->get($url);
         } catch (Exception $e) {
-            throw new ExternalRequestFailedException('External service currently unavailable', code: 500);
+            Log::warning('External service unavailable', [
+                'request' => $url,
+                'error_code' => $e->getCode(),
+                'message' => $e->getMessage(),
+            ]);
+
+            throw new ExternalRequestFailedException(HttpResponse::HTTP_INTERNAL_SERVER_ERROR, 'External service currently unavailable');
         }
 
         if ($response->failed()) {
@@ -27,7 +34,7 @@ class ExternalRequestService
                 'body' => $response->body(),
             ]);
 
-            throw new ExternalRequestFailedException('External request failed with status: ' . $response->status(), code: $response->status());
+            throw new ExternalRequestFailedException($response->status(), 'External request failed');
         }
 
         return $response;

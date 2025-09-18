@@ -4,7 +4,7 @@ namespace App\Services\ProfileSourceStrategies;
 
 use App\Enums\ProfileSourceEnum;
 use App\Services\ExternalRequestService;
-use App\Services\ProfileSourceInterface;
+use App\Interfaces\ProfileSourceInterface;
 use Illuminate\Support\Facades\Validator;
 
 class ProfileSourceMinecraftUsername implements ProfileSourceInterface

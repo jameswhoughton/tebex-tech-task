@@ -5,6 +5,7 @@ namespace Tests\Unit\Services\ProfileSources;
 use App\Enums\ProfileSourceEnum;
 use App\Exceptions\ExternalRequestFailedException;
 use App\Services\ProfileSourceStrategies\ProfileSourceXbl;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -58,13 +59,18 @@ class ProfileSourceXblTest extends TestCase
         ]);
 
         $this->expectException(ExternalRequestFailedException::class);
-        $this->expectExceptionCode(404);
 
         $source = app(ProfileSourceXbl::class);
 
         $source->setPayload(['id' => '2533274884045330']);
 
-        $source->fetch();
+        try {
+            $source->fetch();
+        } catch (ExternalRequestFailedException $e) {
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $e->getStatusCode());
+
+            throw $e;
+        }
     }
 
     public function test_fetch_returns_expected_profile(): void

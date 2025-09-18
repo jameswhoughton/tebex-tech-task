@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-use App\Services\ProfileSourceInterface;
+use App\Interfaces\ProfileSourceInterface;
 use App\Services\ProfileSourceStrategies\ProfileSourceMinecraftId;
 use App\Services\ProfileSourceStrategies\ProfileSourceMinecraftUsername;
 use App\Services\ProfileSourceStrategies\ProfileSourceSteam;

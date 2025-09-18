@@ -5,7 +5,8 @@ namespace App\Services\ProfileSourceStrategies;
 use App\Enums\ProfileSourceEnum;
 use App\Exceptions\ExternalRequestFailedException;
 use App\Services\ExternalRequestService;
-use App\Services\ProfileSourceInterface;
+use App\Interfaces\ProfileSourceInterface;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
 
 class ProfileSourceMinecraftId implements ProfileSourceInterface
@@ -44,7 +45,7 @@ class ProfileSourceMinecraftId implements ProfileSourceInterface
         $response = $this->requestService->get($url);
 
         if ($response->status() === 204) {
-            throw new ExternalRequestFailedException('Unable to find profile', code: 404);
+            throw new ExternalRequestFailedException(Response::HTTP_NOT_FOUND, 'Unable to find profile');
         }
 
         $body = $response->json();
