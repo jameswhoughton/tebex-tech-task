@@ -51,13 +51,22 @@ class LookupEndpointTest extends TestCase
 
             public function fetch(array $payload): array
             {
-                throw new ExternalRequestFailedException($this->externalStatusCode);
+                throw new ExternalRequestFailedException($this->externalStatusCode, 'request failed');
             }
         };
 
         $this->app->instance(ProfileSerivceInterface::class, new ($testProfileSerivce)($externalStatusCode));
 
-        $this->getJson(self::ENDPOINT . '?type=steam')->assertStatus($expectedReturnStatus);
+        $this->getJson(self::ENDPOINT . '?type=steam')
+            ->assertStatus($expectedReturnStatus)
+            ->assertJsonStructure([
+                'error' => [
+                    'message',
+                    'details' => [
+                        'external_response_code',
+                    ]
+                ]
+            ]);
     }
 
     public function test_expected_output_for_steam(): void

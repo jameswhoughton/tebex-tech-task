@@ -55,7 +55,7 @@ class ProfileSourceSteam implements ProfileSourceInterface
         );
 
         if ($response === false) {
-            throw new ThrottleRequestsException;
+            throw new ThrottleRequestsException('Too many requests to the Steam service, try again shortly');
         }
 
         $body = $response->json();
