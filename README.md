@@ -58,23 +58,27 @@ http://localhost:8000/lookup?type=minecraft&username=Notch
 {"username":"Notch","id":"069a79f444e94726a5befca90e38aaf5","avatar":"https:\/\/crafatar.com\/avatars069a79f444e94726a5befca90e38aaf5"}
 ```
 
-## My Approach
+# Solution
 
-When I looked at the separate external services, I decided that the Strategy pattern would be a good fit, this gives several benefits:
-- The logic for each services can be isolated within it's own strategy class.
-- Satisfies the Open/Closed principle: If for example we wanted to add a new service we could do it by adding a new strategy without impacting the existing ones.
+## Architecture
 
-There are 4 Strategies (which all satisfy the `ProfileSourceInterface`), the Minecraft APIs behave differently so I decided to split them into individual strategies:
+I decided that the Strategy pattern would be a good fit for this problem, this gives several benefits:
+- The logic for each service can be isolated within it's own strategy class.
+- Satisfies the Open/Closed principle: new services can be supported without impacting the existing ones.
+
+There are 4 Strategies (which all satisfy the `ProfileSourceInterface`):
 - `ProfileSourceMinecraftId`
 - `ProfileSourceMinecraftUsername`
 - `ProfileSourceSteam`
 - `ProfileSourceXbl`
 
-Each strategy is responsible for three things, validating the parameters for the external request, generating a cache key and fetching the profile from the external service.
+Each strategy is responsible for three things:
 
-As the external requests are contained within the strategy we can now easily introduce our own per service rate limits (see `ProfileSourceSteam` for an example). This can be beneficial if we don't want to rely on the external service rate limiter (we may have multiple endpoints that rely on that service and not want to use up the bandwidth on this particular lookup operation).
+- Validating the parameters for the external request
+- Generating a cache key
+- Fetching the profile from the external service
 
-The controller method uses a form request (`ProfileLookupRequest`) to validate the type, validation of the other params is handled within each strategy (as they are really params for the external request).
+The controller method uses a form request (`ProfileLookupRequest`) to validate the type. Validation of the other parameters is handled within each strategy (as they are really parameters for the external request).
 
 The type of strategy to use is determined based upon the request data (e.g. if the `type` is `minecraft` and there is an `id`, use `ProfileSourceMinecraftId`). This logic is contained within the `ProfileSourceEnum`.
 
@@ -82,12 +86,12 @@ I switched the endpoint from `web` to `api` as it is a stateless, public API end
 
 ### Errors
 
-Since the external apis all seem to use status codes differently, I have attempted to normalise them with the `ExternalRequestFailedException`. Any server error from the external resource results in a `502 - Bad Gateway` response and any client error from the server results in a `400 - Bad Request` response, with the exception of a not found error (which returns a `404 - Not Found` response. This exception handling has been moved out of the Controller so as to offer future consistency if new endpoints are added.
+Since the external apis all seem to use status codes differently, I have attempted to normalise them with the `ExternalRequestFailedException`. Any server error from the external resource results in a `502 - Bad Gateway` response and any client error from the server results in a `400 - Bad Request` response, with the exception of a not found error (which returns a `404 - Not Found` response). This exception handling has been moved out of the Controller so as to offer future consistency if new endpoints are added.
 
 ### Resiliency
 
 - The service is stateless so can easily scale horizontally.
-- All external requests have a timeout (5s) and will retry up-to 3 times with an incremental back-off.
+- All external requests have a timeout (5s) and will retry up to 3 times with an incremental back-off.
 - Results are cached for 24 hours (long term data that is unlikely to change frequently).
 - Rate limiting can be applied at the service level (example: `ProfileSourceSteam`).
 - The endpoint also has it's own rate limit.
@@ -96,16 +100,16 @@ Since the external apis all seem to use status codes differently, I have attempt
 
 #### ProfileService
 
-`ProfileService` is the context class for the strategies, it is responsible for checking the cache and then fetching the profile data via the chosen strategy class. At the moment, profile data is cached for 1 day and there is no way to clear the cache, this may or may not be important depending on business requirements. There are a few options available:
+`ProfileService` is the context class for the strategies. It is responsible for checking the cache and then fetching the profile data via the chosen strategy class. At the moment, profile data is cached for 1 day and there is no way to clear the cache, this may or may not be important depending on business requirements. There are a few options available:
 - Automatically refresh the cache after a certain number of requests.
 - Provide a secured endpoint for elevated users to clear a cached record.
 - Perhaps a day is too long to cache, depending on how the api is used we could reduce this to a number of hours.
 
 #### ExternalRequestService
 
-`ExternalRequestService` is a facade class which wraps the Http Laravel facade the purpose of this class is to cut down on duplication across the Strategies (they all perform the same request with a timeout and retry mechanism). Along with this there is the `ExternalRequestFailedException` which is designed to store the http status code of the external request so that the Controller action can behave correctly.
+`ExternalRequestService` is a facade class which wraps the Http Laravel facade. It provides a centralised place for the retry/timeout logic as well as error response handling. Along with this there is the `ExternalRequestFailedException` which is designed to store the http status code of the external request so that the Controller action can behave correctly.
 
-I am using the Service container to Inject `ExternalRequestService` into the individual strategies, I did debate using an interface for DI in order to make testing easier but as it is relying on the Http facade, I was able to mock this directly in my tests. If it were to become more complex then creating and using an interface would be worth thinking about.
+I am using the Service container to Inject `ExternalRequestService` into the individual strategies. I did debate using an interface for DI in order to make testing easier but as it is relying on the Http facade, I was able to mock this directly in my tests. If it were to become more complex then creating and using an interface would be worth thinking about.
 
 ### Endpoint
 
