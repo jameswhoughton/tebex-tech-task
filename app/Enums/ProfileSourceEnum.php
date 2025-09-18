@@ -24,6 +24,11 @@ enum ProfileSourceEnum: string
         };
     }
 
+    /**
+     * Determine which minecraft strategy to use, based upon the request parameters.
+     *
+     * @param array<string, any> $params
+     **/
     private function minecraftStrategy(array $params): ProfileSourceInterface
     {
         if (isset($params['id'])) {

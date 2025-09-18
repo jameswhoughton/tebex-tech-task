@@ -5,6 +5,7 @@ namespace Tests\Unit\Services\ProfileSources;
 use App\Enums\ProfileSourceEnum;
 use App\Exceptions\ExternalRequestFailedException;
 use App\Services\ProfileSourceStrategies\ProfileSourceSteam;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -100,5 +101,41 @@ class ProfileSourceSteamTest extends TestCase
         $this->assertEquals($fakeResponse['username'], $profile['username']);
         $this->assertEquals($fakeResponse['id'], $profile['id']);
         $this->assertEquals($fakeResponse['meta']['avatar'], $profile['avatar']);
+    }
+
+    public function test_external_request_should_be_rate_limited(): void
+    {
+        $fakeResponse = [
+            'id' => "99999999999999999",
+            'created_at' => "2019-06-28 10:22:07",
+            'updated_at' => "2025-09-16 10:31:25",
+            'cache_expire' => "2025-10-01 10:31:24",
+            'username' => "exampleUser123",
+            'meta' => [
+                'avatar' => "https://example.com/avatar.jpg",
+                'avatarfull' => "https://example.com/avatar-full.jpg",
+                'steamID' => "STEAM_0:1:999999999",
+            ],
+        ];
+
+        Http::fake([
+            'ident.tebex.io/usernameservices/4/username/*' => Http::response(
+                body: $fakeResponse,
+                status: 200
+            ),
+        ]);
+
+        $source = app(ProfileSourceSteam::class);
+
+        $source->setPayload(['id' => '99999999999999999']);
+
+        // Request should be throttled to 50 requests per minute
+        for ($i = 0; $i < 50; $i++) {
+            $source->fetch();
+        }
+
+        $this->expectException(ThrottleRequestsException::class);
+
+        $source->fetch();
     }
 }

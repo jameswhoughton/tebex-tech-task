@@ -3,4 +3,5 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/lookup', ProfileController::class);
+Route::get('/lookup', ProfileController::class)
+    ->middleware('throttle:lookup');

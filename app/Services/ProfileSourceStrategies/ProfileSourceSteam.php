@@ -6,6 +6,8 @@ use App\Enums\ProfileSourceEnum;
 use App\Exceptions\ExternalRequestFailedException;
 use App\Services\ExternalRequestService;
 use App\Services\ProfileSourceInterface;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 
 class ProfileSourceSteam implements ProfileSourceInterface
@@ -42,7 +44,18 @@ class ProfileSourceSteam implements ProfileSourceInterface
     {
         $url = 'https://ident.tebex.io/usernameservices/4/username/' . $this->id;
 
-        $response = $this->requestService->get($url);
+        $ip = request()->ip();
+
+        $response = RateLimiter::attempt(
+            key: sprintf('external_call|%s|%s', ProfileSourceEnum::STEAM->value, $ip),
+            maxAttempts: 50,
+            callback: fn() => $this->requestService->get($url),
+            decaySeconds: 60
+        );
+
+        if ($response === false) {
+            throw new ThrottleRequestsException;
+        }
 
         $body = $response->json();
 

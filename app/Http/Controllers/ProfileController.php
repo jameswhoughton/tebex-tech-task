@@ -7,7 +7,9 @@ use App\Exceptions\ExternalRequestFailedException;
 use App\Http\Requests\ProfileLookupRequest;
 use App\Services\ProfileService;
 use Exception;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 class ProfileController extends Controller
 {
@@ -26,9 +28,9 @@ class ProfileController extends Controller
 
             $code = $e->getCode();
 
-            // Specifically andle not found errors
-            if ($code === 404) {
-                return response()->json(['message' => $e->getMessage()], 404);
+            // Specifically handle not found errors
+            if ($code === Response::HTTP_NOT_FOUND) {
+                return response()->json(['message' => $e->getMessage()], Response::HTTP_NOT_FOUND);
             }
 
             // Any server errors form the external call can be treated as a 502
@@ -40,6 +42,8 @@ class ProfileController extends Controller
             if ($code >= 400) {
                 return response()->json(['message' => $e->getMessage()], 400);
             }
+        } catch (ThrottleRequestsException $e) {
+            return response()->json(['message' => 'Too many requests, try again shortly'], Response::HTTP_TOO_MANY_REQUESTS);
         } catch (Exception $e) {
             return response()->json(['message' => 'Server error'], 500);
         }
