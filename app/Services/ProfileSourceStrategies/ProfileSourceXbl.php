@@ -3,12 +3,9 @@
 namespace App\Services\ProfileSourceStrategies;
 
 use App\Enums\ProfileSourceEnum;
-use App\Exceptions\ProfileFetchException;
-use App\Exceptions\ProfileNotFoundException;
+use App\Exceptions\ExternalRequestFailedException;
+use App\Services\ExternalRequestService;
 use App\Services\ProfileSourceInterface;
-use Exception;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class ProfileSourceXbl implements ProfileSourceInterface
@@ -22,6 +19,8 @@ class ProfileSourceXbl implements ProfileSourceInterface
      * Xbox live username
      **/
     private string | null $username;
+
+    public function __construct(private ExternalRequestService $requestService) {}
 
     public function setPayload(array $payload): void
     {
@@ -66,31 +65,13 @@ class ProfileSourceXbl implements ProfileSourceInterface
 
     public function fetch(): array
     {
-        $url = $this->getUrl();
-
-        try {
-            $response = Http::timeout(5)
-                ->retry(2, 100, throw: false)
-                ->get($url);
-        } catch (Exception $e) {
-            throw new ProfileFetchException('XBL profile service currently unavailable');
-        }
-
-        if ($response->failed()) {
-            Log::warning('Steam profile request failed', [
-                'request' => $url,
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-
-            throw new ProfileFetchException('XBL profile service failed with status: ' . $response->status());
-        }
+        $response = $this->requestService->get($this->getUrl());
 
         $body = $response->json();
 
-        // The external endpoint appears to return a 200 with a body code of 400 if the steam ID cannot be found.
+        // The external endpoint appears to return a 200 with a body code of 400 if the Xbox profile cannot be found.
         if (isset($body['error']) && $body['error']['code'] === 400) {
-            throw new ProfileNotFoundException('Unable to find Xbox profile');
+            throw new ExternalRequestFailedException('Unable to find profile', code: 404);
         }
 
         return [

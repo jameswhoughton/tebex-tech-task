@@ -3,8 +3,11 @@
 namespace App\Enums;
 
 use App\Services\ProfileSourceInterface;
-use App\Services\ProfileSourceStrategies\ProfileSourceMinecraft;
+use App\Services\ProfileSourceStrategies\ProfileSourceMinecraftId;
+use App\Services\ProfileSourceStrategies\ProfileSourceMinecraftUsername;
 use App\Services\ProfileSourceStrategies\ProfileSourceSteam;
+use App\Services\ProfileSourceStrategies\ProfileSourceXbl;
+use InvalidArgumentException;
 
 enum ProfileSourceEnum: string
 {
@@ -12,11 +15,25 @@ enum ProfileSourceEnum: string
     case XBL = 'xbl';
     case MINECRAFT = 'minecraft';
 
-    public function strategy(): ProfileSourceInterface
+    public function strategy(array $params): ProfileSourceInterface
     {
         return match ($this) {
-            self::STEAM => new (ProfileSourceSteam::class),
-            self::MINECRAFT => new (ProfileSourceMinecraft::class),
+            self::STEAM => app(ProfileSourceSteam::class),
+            self::XBL => app(ProfileSourceXbl::class),
+            self::MINECRAFT => $this->minecraftStrategy($params),
         };
+    }
+
+    private function minecraftStrategy(array $params): ProfileSourceInterface
+    {
+        if (isset($params['id'])) {
+            return app(ProfileSourceMinecraftId::class);
+        }
+
+        if (isset($params['username'])) {
+            return app(ProfileSourceMinecraftUsername::class);
+        }
+
+        throw new InvalidArgumentException('$params must contain either an `id` or a `username`');
     }
 }

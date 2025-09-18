@@ -3,23 +3,20 @@
 namespace Tests\Unit\Services\ProfileSources;
 
 use App\Enums\ProfileSourceEnum;
-use App\Exceptions\ProfileNotFoundException;
-use App\Services\ProfileSourceStrategies\ProfileSourceMinecraft;
+use App\Exceptions\ExternalRequestFailedException;
+use App\Services\ProfileSourceStrategies\ProfileSourceMinecraftUsername;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
-class ProfileSourceMinecraftTest extends TestCase
+class ProfileSourceMinecraftUsernameTest extends TestCase
 {
     public static function validationCases(): array
     {
         return [
-            'Id missing and username missing' => [
+            'username missing' => [
                 'payload' => [],
-            ],
-            'Id and username populated' => [
-                'payload' => ['id' => '268641dd8e0b3bf98c902b20da677ab0', 'username' => 'john.smith'],
             ],
         ];
     }
@@ -27,7 +24,7 @@ class ProfileSourceMinecraftTest extends TestCase
     #[DataProvider('validationCases')]
     public function test_minecraft_validation_cases(array $payload): void
     {
-        $source = new ProfileSourceMinecraft;
+        $source = app(ProfileSourceMinecraftUsername::class);
 
         $this->expectException(ValidationException::class);
 
@@ -36,30 +33,13 @@ class ProfileSourceMinecraftTest extends TestCase
 
     public function test_getCacheKey_returns_expected_value(): void
     {
-        $source = new ProfileSourceMinecraft;
+        $source = app(ProfileSourceMinecraftUsername::class);
 
-        $source->setPayload(['id' => '268641dd8e0b3bf98c902b20da677ab0']);
+        $source->setPayload(['username' => 'AAABBB1']);
 
         $cacheKey = $source->getCacheKey();
 
-        $this->assertEquals(ProfileSourceEnum::MINECRAFT->value . '|268641dd8e0b3bf98c902b20da677ab0', $cacheKey);
-    }
-
-    public function test_fetch_with_id_throws_exception_if_profile_not_found(): void
-    {
-        Http::preventStrayRequests();
-
-        Http::fake([
-            'https://sessionserver.mojang.com/*' => 204,
-        ]);
-
-        $this->expectException(ProfileNotFoundException::class);
-
-        $source = new ProfileSourceMinecraft;
-
-        $source->setPayload(['id' => '268641dd8e0b3bf98c902b20da677ab0']);
-
-        $source->fetch();
+        $this->assertEquals(ProfileSourceEnum::MINECRAFT->value . '|AAABBB1', $cacheKey);
     }
 
     public function test_fetch_with_username_throws_exception_if_profile_not_found(): void
@@ -71,9 +51,10 @@ class ProfileSourceMinecraftTest extends TestCase
             'https://api.mojang.com/*' => Http::response('Not Found', 404),
         ]);
 
-        $this->expectException(ProfileNotFoundException::class);
+        $this->expectException(ExternalRequestFailedException::class);
+        $this->expectExceptionCode(404);
 
-        $source = new ProfileSourceMinecraft;
+        $source = app(ProfileSourceMinecraftUsername::class);
 
         $source->setPayload(['username' => 'John']);
 
@@ -96,16 +77,16 @@ class ProfileSourceMinecraftTest extends TestCase
         Http::preventStrayRequests();
 
         Http::fake([
-            'https://sessionserver.mojang.com/session/minecraft/profile/*' => Http::response(
+            'https://api.mojang.com/*' => Http::response(
                 body: $fakeResponse,
                 status: 200
             ),
         ]);
 
 
-        $source = new ProfileSourceMinecraft;
+        $source = app(ProfileSourceMinecraftUsername::class);
 
-        $source->setPayload(['id' => '268641dd8e0b3bf98c902b20da677ab0']);
+        $source->setPayload(['username' => 'john.smith']);
 
         $profile = $source->fetch();
 

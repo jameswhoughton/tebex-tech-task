@@ -8,12 +8,12 @@ use App\Services\ExternalRequestService;
 use App\Services\ProfileSourceInterface;
 use Illuminate\Support\Facades\Validator;
 
-class ProfileSourceSteam implements ProfileSourceInterface
+class ProfileSourceMinecraftId implements ProfileSourceInterface
 {
     /**
-     * Steam ID: numeric ID that is 17 digits long.
+     * Minecraft ID: UUIDv3 without hyphens
      **/
-    private int $id;
+    private string $id;
 
     public function __construct(private ExternalRequestService $requestService) {}
 
@@ -24,37 +24,35 @@ class ProfileSourceSteam implements ProfileSourceInterface
             rules: [
                 'id' => [
                     'required',
-                    'integer',
-                    'digits:17',
+                    'string',
                 ],
             ]
         )->validate();
 
-        $this->id = (int)$payload['id'];
+        $this->id = (string)$payload['id'];
     }
 
     public function getCacheKey(): string
     {
-        return sprintf('%s|%d', ProfileSourceEnum::STEAM->value, $this->id);
+        return sprintf('%s|%s', ProfileSourceEnum::MINECRAFT->value, $this->id);
     }
 
     public function fetch(): array
     {
-        $url = 'https://ident.tebex.io/usernameservices/4/username/' . $this->id;
+        $url = 'https://sessionserver.mojang.com/session/minecraft/profile/' . $this->id;
 
         $response = $this->requestService->get($url);
 
-        $body = $response->json();
-
-        // The external endpoint appears to return a 200 with a body code of 400 if the steam ID cannot be found.
-        if (isset($body['error']) && $body['error']['code'] === 400) {
+        if ($response->status() === 204) {
             throw new ExternalRequestFailedException('Unable to find profile', code: 404);
         }
 
+        $body = $response->json();
+
         return [
-            'username' => $body['username'],
+            'username' => $body['name'],
             'id' => $body['id'],
-            'avatar' => $body['meta']['avatar'],
+            'avatar' => "https://crafatar.com/avatars" . $body['id'],
         ];
     }
 }

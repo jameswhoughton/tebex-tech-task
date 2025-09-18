@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services\ProfileSources;
 
 use App\Enums\ProfileSourceEnum;
-use App\Exceptions\ProfileNotFoundException;
+use App\Exceptions\ExternalRequestFailedException;
 use App\Services\ProfileSourceStrategies\ProfileSourceSteam;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -34,7 +34,7 @@ class ProfileSourceSteamTest extends TestCase
     #[DataProvider('validationCases')]
     public function test_steam_validation_cases(array $payload): void
     {
-        $source = new ProfileSourceSteam;
+        $source = app(ProfileSourceSteam::class);
 
         $this->expectException(ValidationException::class);
 
@@ -43,7 +43,7 @@ class ProfileSourceSteamTest extends TestCase
 
     public function test_getCacheKey_returns_expected_value(): void
     {
-        $source = new ProfileSourceSteam;
+        $source = app(ProfileSourceSteam::class);
 
         $source->setPayload(['id' => '99999999999999999']);
 
@@ -58,9 +58,10 @@ class ProfileSourceSteamTest extends TestCase
             'ident.tebex.io/usernameservices/4/username/*' => Http::response(status: 200, body: ['error' => ['code' => 400]]),
         ]);
 
-        $this->expectException(ProfileNotFoundException::class);
+        $this->expectException(ExternalRequestFailedException::class);
+        $this->expectExceptionCode(404);
 
-        $source = new ProfileSourceSteam;
+        $source = app(ProfileSourceSteam::class);
 
         $source->setPayload(['id' => '99999999999999999']);
 
@@ -90,7 +91,7 @@ class ProfileSourceSteamTest extends TestCase
         ]);
 
 
-        $source = new ProfileSourceSteam;
+        $source = app(ProfileSourceSteam::class);
 
         $source->setPayload(['id' => '99999999999999999']);
 

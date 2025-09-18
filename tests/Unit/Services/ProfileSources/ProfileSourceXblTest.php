@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services\ProfileSources;
 
 use App\Enums\ProfileSourceEnum;
-use App\Exceptions\ProfileNotFoundException;
+use App\Exceptions\ExternalRequestFailedException;
 use App\Services\ProfileSourceStrategies\ProfileSourceXbl;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
@@ -27,7 +27,7 @@ class ProfileSourceXblTest extends TestCase
     #[DataProvider('validationCases')]
     public function test_xbl_validation_cases(array $payload): void
     {
-        $source = new ProfileSourceXbl;
+        $source = app(ProfileSourceXbl::class);
 
         $this->expectException(ValidationException::class);
 
@@ -36,7 +36,7 @@ class ProfileSourceXblTest extends TestCase
 
     public function test_getCacheKey_returns_expected_value(): void
     {
-        $source = new ProfileSourceXbl;
+        $source = app(ProfileSourceXbl::class);
 
         $source->setPayload(['id' => '2533274884045330']);
 
@@ -57,9 +57,10 @@ class ProfileSourceXblTest extends TestCase
             'ident.tebex.io/usernameservices/3/username/*' => Http::response(status: 200, body: ['error' => ['code' => 400]]),
         ]);
 
-        $this->expectException(ProfileNotFoundException::class);
+        $this->expectException(ExternalRequestFailedException::class);
+        $this->expectExceptionCode(404);
 
-        $source = new ProfileSourceXbl;
+        $source = app(ProfileSourceXbl::class);
 
         $source->setPayload(['id' => '2533274884045330']);
 
@@ -88,7 +89,7 @@ class ProfileSourceXblTest extends TestCase
         ]);
 
 
-        $source = new ProfileSourceXbl;
+        $source = app(ProfileSourceXbl::class);
 
         $source->setPayload(['id' => '2533274884045330']);
 
