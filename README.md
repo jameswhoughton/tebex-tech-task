@@ -60,15 +60,11 @@ http://localhost:8000/lookup?type=minecraft&username=Notch
 
 ## My Approach
 
-I started with a fresh install of Laravel 12 (habit) and Sail (running Redis locally) and then copied across the `LookupController`.
-
-I switched the endpoint from web to api as it is a stateless, public API endpoint, so we don't have to worry about sessions. This also has the benefit of making it very easy to scale horizontally.
-
 When I looked at the separate external services, I decided that the Strategy pattern would be a good fit, this gives several benefits:
 - The logic for each services can be isolated within it's own strategy class.
 - Satisfies the Open/Closed principle: If for example we wanted to add a new service we could do it by adding a new strategy without impacting the existing ones.
 
-Initially I created 3 strategies (one for each named service: Steam, XBL and Minecraft). This however was not suitable, as after digging deeper into the Minecraft APIs, I discovered they behaved quite differently so I ended up with 4 Strategies (which all satisfy the `ProfileSourceInterface`):
+There are 4 Strategies (which all satisfy the `ProfileSourceInterface`), the Minecraft APIs behave differently so I decided to split them into individual strategies:
 - `ProfileSourceMinecraftId`
 - `ProfileSourceMinecraftUsername`
 - `ProfileSourceSteam`
@@ -82,6 +78,19 @@ The controller method uses a form request (`ProfileLookupRequest`) to validate t
 
 The type of strategy to use is determined based upon the request data (e.g. if the `type` is `minecraft` and there is an `id`, use `ProfileSourceMinecraftId`). This logic is contained within the `ProfileSourceEnum`.
 
+I switched the endpoint from `web` to `api` as it is a stateless, public API endpoint, so we don't have to worry about sessions. This also has the benefit of making it very easy to scale horizontally.
+
+### Errors
+
+Since the external apis all seem to use status codes differently, I have attempted to normalise them with the `ExternalRequestFailedException`. Any server error from the external resource results in a `502 - Bad Gateway` response and any client error from the server results in a `400 - Bad Request` response, with the exception of a not found error (which returns a `404 - Not Found` response. This exception handling has been moved out of the Controller so as to offer future consistency if new endpoints are added.
+
+### Resiliency
+
+- The service is stateless so can easily scale horizontally.
+- All external requests have a timeout (5s) and will retry up-to 3 times with an incremental back-off.
+- Results are cached for 24 hours (long term data that is unlikely to change frequently).
+- Rate limiting can be applied at the service level (example: `ProfileSourceSteam`).
+- The endpoint also has it's own rate limit.
 
 ### Services
 
@@ -106,7 +115,7 @@ Search a range of sources for a player's profile. The endpoint has a fair usage 
 
 ##### URL Parameters
 
-- **type=** - Specify the external source of the profile lookup [steam|xbl|minecraft]
+- **type=** - Specify the external source of the profile lookup (steam|xbl|minecraft)
 - **id=** - The id of the user profile (should be excluded if the username is provided)
 - **username=** - The username of the user profile (should be excluded if the id is provided)
 
@@ -145,10 +154,10 @@ Search a range of sources for a player's profile. The endpoint has a fair usage 
 
 - **200** - Success
 - **400** - Client error response from external service
-- **404** - Profile not found
+- **404** - Profile not found at the external service
 - **422** - URL parameters invalid
-- **429** - Too many requests to external service
-- **500** - Internal serer error
+- **429** - Too many requests to external service or endpoint
+- **500** - Internal server error
 - **502** - Server error response from external service
 
 ### Steps to Test Locally

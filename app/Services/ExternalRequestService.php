@@ -15,7 +15,11 @@ class ExternalRequestService
     {
         try {
             $response = Http::timeout(5)
-                ->retry(2, 100, throw: false)
+                ->retry(
+                    times: 3,
+                    sleepMilliseconds: fn (int $attempt) => $attempt * 100,
+                    throw: false
+                )
                 ->get($url);
         } catch (Exception $e) {
             Log::warning('External service unavailable', [
