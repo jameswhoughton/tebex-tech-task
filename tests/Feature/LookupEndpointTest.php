@@ -11,7 +11,7 @@ use Tests\TestCase;
 
 class LookupEndpointTest extends TestCase
 {
-    const ENDPOINT = '/api/lookup';
+    public const ENDPOINT = '/api/lookup';
 
     public function test_return_invalid_if_type_not_valid(): void
     {
@@ -43,11 +43,14 @@ class LookupEndpointTest extends TestCase
     #[DataProvider('errorCodes')]
     public function test_correct_status_code_on_external_request_error(int $externalStatusCode, int $expectedReturnStatus): void
     {
-        $testProfileSerivce = new class($externalStatusCode) implements ProfileSerivceInterface
-        {
-            public function __construct(private int $externalStatusCode) {}
+        $testProfileSerivce = new class ($externalStatusCode) implements ProfileSerivceInterface {
+            public function __construct(private int $externalStatusCode)
+            {
+            }
 
-            public function setSource(ProfileSourceInterface $source): void {}
+            public function setSource(ProfileSourceInterface $source): void
+            {
+            }
 
             public function fetch(array $payload): array
             {

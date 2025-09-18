@@ -20,7 +20,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(
             abstract: ProfileSerivceInterface::class,
-            concrete: fn(Application $app) => $app->make(ProfileService::class)
+            concrete: fn (Application $app) => $app->make(ProfileService::class)
         );
     }
 

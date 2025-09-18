@@ -16,7 +16,9 @@ class ProfileSourceMinecraftId implements ProfileSourceInterface
      **/
     private string $id;
 
-    public function __construct(private ExternalRequestService $requestService) {}
+    public function __construct(private ExternalRequestService $requestService)
+    {
+    }
 
     public function setPayload(array $payload): void
     {

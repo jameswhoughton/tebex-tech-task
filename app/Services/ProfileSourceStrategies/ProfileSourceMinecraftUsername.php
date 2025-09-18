@@ -14,7 +14,9 @@ class ProfileSourceMinecraftUsername implements ProfileSourceInterface
      **/
     private string $username;
 
-    public function __construct(private ExternalRequestService $requestService) {}
+    public function __construct(private ExternalRequestService $requestService)
+    {
+    }
 
     public function setPayload(array $payload): void
     {

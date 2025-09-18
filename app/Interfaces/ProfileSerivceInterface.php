@@ -2,8 +2,6 @@
 
 namespace App\Interfaces;
 
-use App\Interfaces\ProfileSourceInterface;
-
 interface ProfileSerivceInterface
 {
     /**

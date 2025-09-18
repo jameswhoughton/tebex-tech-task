@@ -21,7 +21,9 @@ class ProfileSourceXbl implements ProfileSourceInterface
      **/
     private string | null $username;
 
-    public function __construct(private ExternalRequestService $requestService) {}
+    public function __construct(private ExternalRequestService $requestService)
+    {
+    }
 
     public function setPayload(array $payload): void
     {

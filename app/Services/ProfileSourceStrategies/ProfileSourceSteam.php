@@ -18,7 +18,9 @@ class ProfileSourceSteam implements ProfileSourceInterface
      **/
     private int $id;
 
-    public function __construct(private ExternalRequestService $requestService) {}
+    public function __construct(private ExternalRequestService $requestService)
+    {
+    }
 
     public function setPayload(array $payload): void
     {
@@ -50,7 +52,7 @@ class ProfileSourceSteam implements ProfileSourceInterface
         $response = RateLimiter::attempt(
             key: sprintf('external_call|%s|%s', ProfileSourceEnum::STEAM->value, $ip),
             maxAttempts: 50,
-            callback: fn() => $this->requestService->get($url),
+            callback: fn () => $this->requestService->get($url),
             decaySeconds: 60
         );
 

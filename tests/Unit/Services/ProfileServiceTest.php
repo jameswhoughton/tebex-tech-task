@@ -12,13 +12,15 @@ class ProfileServiceTest extends TestCase
 {
     public function test_fetch_returns_from_cache_if_existis(): void
     {
-        $mock = new class() implements ProfileSourceInterface {
+        $mock = new class () implements ProfileSourceInterface {
             public function getCacheKey(): string
             {
                 return '123';
             }
 
-            public function setPayload(array $payload): void {}
+            public function setPayload(array $payload): void
+            {
+            }
 
             public function fetch(): array
             {
@@ -39,7 +41,7 @@ class ProfileServiceTest extends TestCase
             value: $fakeProfile
         );
 
-        $service = new ProfileService;
+        $service = new ProfileService();
 
         $service->setSource($mock);
 
@@ -50,13 +52,15 @@ class ProfileServiceTest extends TestCase
 
     public function test_fetch_stores_new_profile_in_the_cache(): void
     {
-        $mock = new class() implements ProfileSourceInterface {
+        $mock = new class () implements ProfileSourceInterface {
             public function getCacheKey(): string
             {
                 return '123';
             }
 
-            public function setPayload(array $payload): void {}
+            public function setPayload(array $payload): void
+            {
+            }
 
             public function fetch(): array
             {
@@ -70,7 +74,7 @@ class ProfileServiceTest extends TestCase
 
         Cache::clear();
 
-        $service = new ProfileService;
+        $service = new ProfileService();
 
         $service->setSource($mock);
 

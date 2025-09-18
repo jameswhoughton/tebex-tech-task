@@ -16,7 +16,7 @@ class ExternalRequestServiceTest extends TestCase
             'https://example.com' => Http::sequence()->pushFailedConnection()->pushStatus(200),
         ]);
 
-        $service = new ExternalRequestService;
+        $service = new ExternalRequestService();
 
         $service->get('https://example.com');
 

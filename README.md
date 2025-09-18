@@ -82,6 +82,7 @@ The controller method uses a form request (`ProfileLookupRequest`) to validate t
 
 The type of strategy to use is determined based upon the request data (e.g. if the `type` is `minecraft` and there is an `id`, use `ProfileSourceMinecraftId`). This logic is contained within the `ProfileSourceEnum`.
 
+
 ### Services
 
 #### ProfileService
@@ -119,11 +120,24 @@ Search a range of sources for a player's profile. The endpoint has a fair usage 
 }
 ```
 
+##### Example Validation Response
+
+```json
+{
+    "message":"The id field is required.",
+    "errors": {
+        "id": ["The id field is required."]
+    }
+}
+```
+
 ##### Example Error Response
 
 ```json
 {
-    "message": "Unable to find profile"
+    "error": {
+        "message": "Unable to find profile"
+    }
 }
 ```
 
