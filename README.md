@@ -73,22 +73,23 @@ There are 4 Strategies (which all satisfy the `ProfileSourceInterface`):
 - `ProfileSourceXbl`
 
 Each strategy is responsible for three things:
-
 - Validating the parameters for the external request
 - Generating a cache key
 - Fetching the profile from the external service
-
-The controller method uses a form request (`ProfileLookupRequest`) to validate the type. Validation of the other parameters is handled within each strategy (as they are really parameters for the external request).
 
 The type of strategy to use is determined based upon the request data (e.g. if the `type` is `minecraft` and there is an `id`, use `ProfileSourceMinecraftId`). This logic is contained within the `ProfileSourceEnum`.
 
 I switched the endpoint from `web` to `api` as it is a stateless, public API endpoint, so we don't have to worry about sessions. This also has the benefit of making it very easy to scale horizontally.
 
-### Errors
+## Validation
+
+The controller method uses a form request (`ProfileLookupRequest`) to validate the type. Validation of the other parameters is handled within each strategy (as they are really parameters for the external request).
+
+## Errors
 
 Since the external apis all seem to use status codes differently, I have attempted to normalise them with the `ExternalRequestFailedException`. Any server error from the external resource results in a `502 - Bad Gateway` response and any client error from the server results in a `400 - Bad Request` response, with the exception of a not found error (which returns a `404 - Not Found` response). This exception handling has been moved out of the Controller so as to offer future consistency if new endpoints are added.
 
-### Resiliency
+## Resiliency
 
 - The service is stateless so can easily scale horizontally.
 - All external requests have a timeout (5s) and will retry up to 3 times with an incremental back-off.
@@ -96,34 +97,34 @@ Since the external apis all seem to use status codes differently, I have attempt
 - Rate limiting can be applied at the service level (example: `ProfileSourceSteam`).
 - The endpoint also has it's own rate limit.
 
-### Services
+## Services
 
-#### ProfileService
+### ProfileService
 
 `ProfileService` is the context class for the strategies. It is responsible for checking the cache and then fetching the profile data via the chosen strategy class. At the moment, profile data is cached for 1 day and there is no way to clear the cache, this may or may not be important depending on business requirements. There are a few options available:
 - Automatically refresh the cache after a certain number of requests.
 - Provide a secured endpoint for elevated users to clear a cached record.
 - Perhaps a day is too long to cache, depending on how the api is used we could reduce this to a number of hours.
 
-#### ExternalRequestService
+### ExternalRequestService
 
 `ExternalRequestService` is a facade class which wraps the Http Laravel facade. It provides a centralised place for the retry/timeout logic as well as error response handling. Along with this there is the `ExternalRequestFailedException` which is designed to store the http status code of the external request so that the Controller action can behave correctly.
 
 I am using the Service container to Inject `ExternalRequestService` into the individual strategies. I did debate using an interface for DI in order to make testing easier but as it is relying on the Http facade, I was able to mock this directly in my tests. If it were to become more complex then creating and using an interface would be worth thinking about.
 
-### Endpoint
+## Endpoint
 
-#### GET /api/lookup
+### GET /api/lookup
 
 Search a range of sources for a player's profile. The endpoint has a fair usage of 500 requests per minute
 
-##### URL Parameters
+#### URL Parameters
 
 - **type=** - Specify the external source of the profile lookup (steam|xbl|minecraft)
 - **id=** - The id of the user profile (should be excluded if the username is provided)
 - **username=** - The username of the user profile (should be excluded if the id is provided)
 
-##### Example Success Response
+#### Example Success Response
 
 ```json
 {
@@ -133,7 +134,7 @@ Search a range of sources for a player's profile. The endpoint has a fair usage 
 }
 ```
 
-##### Example Validation Response
+#### Example Validation Response
 
 ```json
 {
@@ -144,7 +145,7 @@ Search a range of sources for a player's profile. The endpoint has a fair usage 
 }
 ```
 
-##### Example Error Response
+#### Example Error Response
 
 ```json
 {
@@ -154,7 +155,7 @@ Search a range of sources for a player's profile. The endpoint has a fair usage 
 }
 ```
 
-##### Response Codes
+#### Response Codes
 
 - **200** - Success
 - **400** - Client error response from external service
@@ -164,7 +165,7 @@ Search a range of sources for a player's profile. The endpoint has a fair usage 
 - **500** - Internal server error
 - **502** - Server error response from external service
 
-### Steps to Test Locally
+## Steps to Test Locally
 
 1. `composer install`
 2. `cp .env.example .env`
