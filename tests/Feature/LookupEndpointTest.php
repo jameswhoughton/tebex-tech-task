@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Exceptions\ExternalRequestFailedException;
 use App\Interfaces\ProfileSerivceInterface;
 use App\Interfaces\ProfileSourceInterface;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -13,9 +14,32 @@ class LookupEndpointTest extends TestCase
 {
     public const ENDPOINT = '/api/lookup';
 
-    public function test_return_invalid_if_type_not_valid(): void
+    public static function validationCases(): array
     {
-        $this->getJson(self::ENDPOINT . '?type=aaa')->assertInvalid('type');
+        return [
+            'invalid type' => [
+                'payload' => '?type=aaa&id=123',
+                'expectedErrors' => ['type'],
+            ],
+            'missing identifier (id or username)' => [
+                'payload' => '?type=steam',
+                'expectedErrors' => ['id', 'username'],
+            ],
+        ];
+    }
+
+    #[DataProvider('validationCases')]
+    public function test_return_invalid_if_type_not_valid(string $payload, array $expectedErrors): void
+    {
+        $this->getJson(self::ENDPOINT . $payload)
+            ->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
+            ->assertJsonStructure([
+                'error' => [
+                    'message',
+                    'details' => $expectedErrors,
+                ]
+            ]);
+        ;
     }
 
     public static function errorCodes(): array
@@ -60,7 +84,7 @@ class LookupEndpointTest extends TestCase
 
         $this->app->instance(ProfileSerivceInterface::class, new ($testProfileSerivce)($externalStatusCode));
 
-        $this->getJson(self::ENDPOINT . '?type=steam')
+        $this->getJson(self::ENDPOINT . '?type=steam&id=111')
             ->assertStatus($expectedReturnStatus)
             ->assertJsonStructure([
                 'error' => [

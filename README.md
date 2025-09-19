@@ -83,7 +83,7 @@ I switched the endpoint from `web` to `api` as it is a stateless, public API end
 
 ## Validation
 
-The controller method uses a form request (`ProfileLookupRequest`) to validate the type. Validation of the other parameters is handled within each strategy (as they are really parameters for the external request).
+The controller method uses a form request (`ProfileLookupRequest`) to validate the type and the presence of either the id or username. Service specific validation of the id/username is handled within each strategy (as they are really parameters for the external request).
 
 ## Errors
 
@@ -133,24 +133,25 @@ Search a range of sources for a player's profile. The endpoint has a fair usage 
     "avatar": "https://example.com/avatar.png"
 }
 ```
+#### Example Error Responses
 
-#### Example Validation Response
-
-```json
-{
-    "message":"The id field is required.",
-    "errors": {
-        "id": ["The id field is required."]
-    }
-}
-```
-
-#### Example Error Response
-
+404
 ```json
 {
     "error": {
         "message": "Unable to find profile"
+    }
+}
+```
+
+422
+```json
+{
+    "error": {
+        "message":"The id field is required.",
+        "details": {
+            "id": ["The id field is required."]
+        }
     }
 }
 ```
@@ -172,3 +173,4 @@ Search a range of sources for a player's profile. The endpoint has a fair usage 
 3. `vendor/bin/sail up -d`
 4. `vendor/bin/sail artisan key:generate`
 6. `curl -H "Accept:application/json" http://localhost/api/lookup?type=xbl&username=tebex`
+7. Run tests with `vendor/bin/sail test`

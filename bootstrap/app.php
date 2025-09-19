@@ -8,6 +8,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -22,12 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
-
-            if ($request->is('api/*')) {
-                return new ErrorResource([
-                    'message' => 'Not found',
-                ])->response()->setStatusCode(Response::HTTP_NOT_FOUND);
-            }
+            return new ErrorResource([
+                'message' => 'Not found',
+            ])->response()->setStatusCode(Response::HTTP_NOT_FOUND);
         });
 
         $exceptions->render(function (ExternalRequestFailedException $e) {
@@ -62,6 +60,13 @@ return Application::configure(basePath: dirname(__DIR__))
                     ],
                 ])->response()->setStatusCode(Response::HTTP_BAD_REQUEST);
             }
+        });
+
+        $exceptions->render(function (ValidationException $e) {
+            return new ErrorResource([
+                'message' => $e->getMessage(),
+                'details' => $e->errors(),
+            ])->response()->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
         });
 
         $exceptions->render(function (ThrottleRequestsException $e) {

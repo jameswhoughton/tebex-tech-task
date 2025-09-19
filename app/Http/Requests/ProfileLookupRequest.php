@@ -27,6 +27,8 @@ class ProfileLookupRequest extends FormRequest
             'type' => [
                 Rule::enum(ProfileSourceEnum::class),
             ],
+            'id' => ['required_without:username'],
+            'username' => ['required_without:id'],
         ];
     }
 }
